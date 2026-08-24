@@ -7,13 +7,17 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var rootCmd = &cobra.Command{
-	Use:   "marky",
-	Short: "A markdown document manager powered by YAML",
+func NewRootCmd() *cobra.Command {
+	root := &cobra.Command{
+		Use:   "marky",
+		Short: "A markdown document manager powered by YAML",
+	}
+	root.AddCommand(newGenerateCmd())
+	return root
 }
 
 func Execute() {
-	if err := rootCmd.Execute(); err != nil {
+	if err := NewRootCmd().Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
