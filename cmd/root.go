@@ -13,6 +13,7 @@ func NewRootCmd() *cobra.Command {
 		Short: "A markdown document manager powered by YAML",
 	}
 	root.AddCommand(newGenerateCmd())
+	root.AddCommand(newViewCmd())
 	return root
 }
 
