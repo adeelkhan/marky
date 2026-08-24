@@ -1,11 +1,12 @@
 package viewer_test
 
 import (
+	"strings"
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/adeelkhan/marky/internal/server"
 	"github.com/adeelkhan/marky/internal/viewer"
+	tea "github.com/charmbracelet/bubbletea"
 )
 
 func newModel(content string) tea.Model {
@@ -47,25 +48,29 @@ func TestViewer_WindowResize(t *testing.T) {
 func TestViewer_ServerStatusUpdate(t *testing.T) {
 	ch := make(chan server.ServerEvent, 1)
 	m := viewer.New("# Hello\n", "test.yaml", 8080, ch)
-
-	// Send a ready event
-	m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
-	updated, _ := m.Update(viewer.ServerEventMsg(server.ServerEvent{Status: "ready"}))
-	view := updated.View()
+	updated, _ := m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	updated2, _ := updated.Update(viewer.ServerEventMsg(server.ServerEvent{Status: "ready"}))
+	view := updated2.View()
 	if view == "" {
 		t.Error("View() returned empty string after status update")
+	}
+	if !strings.Contains(view, "ready") {
+		t.Errorf("expected 'ready' status in view, got: %s", view)
 	}
 }
 
 func TestViewer_ContentUpdate(t *testing.T) {
 	ch := make(chan server.ServerEvent, 1)
 	m := viewer.New("# Hello\n", "test.yaml", 8080, ch)
-	m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	updated, _ := m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
 
 	newContent := "# Updated\n\nNew paragraph.\n"
-	updated, _ := m.Update(viewer.ServerEventMsg(server.ServerEvent{
+	updated2, _ := updated.Update(viewer.ServerEventMsg(server.ServerEvent{
 		Status:  "saved",
 		Content: newContent,
 	}))
-	_ = updated.View() // should not panic
+	view := updated2.View()
+	if !strings.Contains(view, "Updated") {
+		t.Errorf("expected updated content in view, got: %s", view)
+	}
 }

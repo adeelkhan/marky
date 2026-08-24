@@ -33,6 +33,7 @@ func runGenerate(cmd *cobra.Command, inputDir, outputDir string) error {
 	}
 
 	generated := 0
+	failed := 0
 	for _, entry := range entries {
 		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".yaml") {
 			continue
@@ -43,6 +44,7 @@ func runGenerate(cmd *cobra.Command, inputDir, outputDir string) error {
 
 		if err := GenerateOne(yamlPath, mdPath); err != nil {
 			fmt.Fprintf(cmd.ErrOrStderr(), "error: %s: %v\n", entry.Name(), err)
+			failed++
 			continue
 		}
 		fmt.Fprintf(cmd.OutOrStdout(), "generated: %s → %s\n", yamlPath, mdPath)
@@ -50,6 +52,9 @@ func runGenerate(cmd *cobra.Command, inputDir, outputDir string) error {
 	}
 
 	fmt.Fprintf(cmd.OutOrStdout(), "\n%d file(s) generated.\n", generated)
+	if failed > 0 {
+		return fmt.Errorf("%d file(s) failed to generate", failed)
+	}
 	return nil
 }
 

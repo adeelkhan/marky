@@ -12,12 +12,13 @@ import (
 	"time"
 
 	"github.com/adeelkhan/marky/internal/convert"
+	"github.com/adeelkhan/marky/internal/schema"
 	"github.com/gorilla/websocket"
 )
 
 // ServerEvent is sent to the TUI when server state changes.
 type ServerEvent struct {
-	Status  string `json:"status"`           // "ready", "saved", "error"
+	Status  string `json:"status"` // "ready", "saved", "error"
 	Time    string `json:"time,omitempty"`
 	Error   string `json:"error,omitempty"`
 	Content string `json:"content,omitempty"`
@@ -97,6 +98,10 @@ func (s *Server) Start(ctx context.Context) error {
 }
 
 func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/" {
+		http.NotFound(w, r)
+		return
+	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	_, _ = w.Write([]byte(editorHTML))
 }
@@ -130,6 +135,12 @@ func (s *Server) handleSave(w http.ResponseWriter, r *http.Request) {
 		s.broadcast(ev)
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return
+	}
+
+	// Carry forward metadata (author, date) from existing YAML that markdown cannot encode.
+	if existing, err2 := schema.ParseFile(s.yamlPath); err2 == nil {
+		doc.Author = existing.Author
+		doc.Date = existing.Date
 	}
 
 	if err := writeAtomic(s.mdPath, []byte(payload.Content)); err != nil {
@@ -190,6 +201,7 @@ func (s *Server) broadcast(event ServerEvent) {
 	s.clientMu.Lock()
 	defer s.clientMu.Unlock()
 	for conn := range s.clients {
+		_ = conn.SetWriteDeadline(time.Now().Add(5 * time.Second))
 		_ = conn.WriteMessage(websocket.TextMessage, data)
 	}
 }

@@ -9,9 +9,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/adeelkhan/marky/internal/server"
 	"github.com/adeelkhan/marky/internal/viewer"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 )
 
@@ -54,7 +54,7 @@ func runView(cmd *cobra.Command, args []string) error {
 
 	go func() {
 		if err := srv.Start(ctx); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			// Server stopped — TUI will handle quit
+			cancel() // stop the TUI if server fails to start
 		}
 	}()
 

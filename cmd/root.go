@@ -9,8 +9,9 @@ import (
 
 func NewRootCmd() *cobra.Command {
 	root := &cobra.Command{
-		Use:   "marky",
-		Short: "A markdown document manager powered by YAML",
+		Use:     "marky",
+		Short:   "A markdown document manager powered by YAML",
+		Version: "0.1.0",
 	}
 	root.AddCommand(newGenerateCmd())
 	root.AddCommand(newViewCmd())

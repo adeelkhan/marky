@@ -5,11 +5,11 @@ import (
 	"os/exec"
 	"runtime"
 
+	"github.com/adeelkhan/marky/internal/server"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/adeelkhan/marky/internal/server"
 )
 
 // ServerEventMsg wraps server.ServerEvent as a Bubbletea message.
@@ -42,6 +42,7 @@ type model struct {
 	width    int
 	height   int
 	ready    bool
+	showHelp bool
 }
 
 // New creates a new TUI model. Call tea.NewProgram(viewer.New(...)).Run() to start.
@@ -75,6 +76,8 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		case "o":
 			cmds = append(cmds, openBrowser(fmt.Sprintf("http://localhost:%d", m.port)))
+		case "?":
+			m.showHelp = !m.showHelp
 		}
 
 	case tea.WindowSizeMsg:
@@ -126,7 +129,12 @@ func (m *model) View() string {
 		fmt.Sprintf(" marky  ·  %s", m.filePath),
 	)
 
-	footer1 := footerStyle.Render("  ↑↓ scroll  o open browser  q quit")
+	var footer1 string
+	if m.showHelp {
+		footer1 = footerStyle.Render("  HELP: ↑↓/jk scroll  o open browser  ? hide help  q quit")
+	} else {
+		footer1 = footerStyle.Render("  ↑↓ scroll  o open browser  ? help  q quit")
+	}
 	url := urlStyle.Render(fmt.Sprintf("http://localhost:%d", m.port))
 	st := statusStyle.Render(fmt.Sprintf("[%s]", m.status))
 	footer2 := footerStyle.Render(fmt.Sprintf("  %s  %s", url, st))
