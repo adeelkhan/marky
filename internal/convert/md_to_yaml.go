@@ -172,6 +172,8 @@ func extractListItem(n ast.Node, src []byte) string {
 	for child := n.FirstChild(); child != nil; child = child.NextSibling() {
 		if p, ok := child.(*ast.Paragraph); ok {
 			sb.WriteString(extractRawLines(p, src))
+		} else if tb, ok := child.(*ast.TextBlock); ok {
+			sb.WriteString(extractRawLines(tb, src))
 		}
 	}
 	return sb.String()

@@ -2,6 +2,7 @@
 package convert_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adeelkhan/marky/internal/convert"
@@ -61,6 +62,9 @@ func TestRoundTrip_CodeBlock(t *testing.T) {
 	if len(out.Sections) != 1 || out.Sections[0].Type != "code" || out.Sections[0].Lang != "go" {
 		t.Errorf("round-trip code: got %+v", out.Sections)
 	}
+	if !strings.Contains(out.Sections[0].Body, "fmt.Println()") {
+		t.Errorf("code body = %q, want to contain 'fmt.Println()'", out.Sections[0].Body)
+	}
 }
 
 func TestRoundTrip_UnorderedList(t *testing.T) {
@@ -71,6 +75,9 @@ func TestRoundTrip_UnorderedList(t *testing.T) {
 	}
 	if len(out.Sections[0].Items) != 3 {
 		t.Errorf("list items count = %d, want 3", len(out.Sections[0].Items))
+	}
+	if out.Sections[0].Items[0] != "a" || out.Sections[0].Items[2] != "c" {
+		t.Errorf("list items = %v, want [a b c]", out.Sections[0].Items)
 	}
 }
 
@@ -87,6 +94,9 @@ func TestRoundTrip_Blockquote(t *testing.T) {
 	out := roundTrip(t, in)
 	if len(out.Sections) != 1 || out.Sections[0].Type != "blockquote" {
 		t.Errorf("round-trip blockquote: got %+v", out.Sections)
+	}
+	if out.Sections[0].Text != "A quote" {
+		t.Errorf("blockquote text = %q, want %q", out.Sections[0].Text, "A quote")
 	}
 }
 
@@ -106,6 +116,36 @@ func TestRoundTrip_Link(t *testing.T) {
 	}
 	if out.Sections[0].URL != "https://example.com" {
 		t.Errorf("link url = %q, want %q", out.Sections[0].URL, "https://example.com")
+	}
+}
+
+func TestMarkdownToYAML_Description(t *testing.T) {
+	// YAMLToMarkdown emits *Description* as italic paragraph after H1
+	src := []byte("# My Doc\n\n*A subtitle here*\n\n## Section\n\nContent.\n")
+	doc, err := convert.MarkdownToYAML(src)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if doc.Description != "A subtitle here" {
+		t.Errorf("description = %q, want %q", doc.Description, "A subtitle here")
+	}
+	// The italic paragraph should NOT appear as a section
+	for _, s := range doc.Sections {
+		if s.Type == "paragraph" && strings.Contains(s.Text, "subtitle") {
+			t.Error("description paragraph leaked into sections")
+		}
+	}
+}
+
+func TestRoundTrip_Description(t *testing.T) {
+	in := &schema.Document{Title: "Test", Description: "A subtitle", Sections: []schema.Section{}}
+	md := convert.YAMLToMarkdown(in)
+	out, err := convert.MarkdownToYAML([]byte(md))
+	if err != nil {
+		t.Fatalf("MarkdownToYAML: %v", err)
+	}
+	if out.Description != "A subtitle" {
+		t.Errorf("description round-trip: got %q, want %q", out.Description, "A subtitle")
 	}
 }
 
